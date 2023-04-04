@@ -88,4 +88,17 @@ json <- map_df(1:nrow(bestSongs), function(x) {
 })
 
 
-jsonlite::write_json(json, "songs.json")
+jsonlite::write_json(json, "songs.json")%>% 
+  write_json("songs2.json")
+
+as.list(bestSongs$track.album.id)
+
+bestSongs$track.id%>% 
+  write_json("songs2.json")
+
+
+sprintf('"%s"', paste(bestSongs$track.id, collapse = '", "')) %>% 
+  write_json("songs2.json")
+
+
+
