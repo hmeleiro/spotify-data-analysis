@@ -1,6 +1,7 @@
 library(spotifyr)
 library(dplyr)
 library(readr)
+library(tidyr)
 
 auth <- spotifyr::get_spotify_authorization_code(scope = c("playlist-read-private"))
 playlists <- spotifyr::get_my_playlists(authorization = auth)
@@ -9,23 +10,22 @@ tuneline_playlist <- playlists %>%
 songs <- get_playlist(tuneline_playlist$id)
 songs <- songs$tracks$items
 
-df <- read_csv("output/tuneline-reduced-earliest-version.csv")
+df <- read_csv("output/tuneline-reduced-earliest-version.csv", show_col_types = F)
+
 
 originalNames <- 
   tibble(
-    spotify_id = map_chr(songs, function(x) {x$track$id}),
-    uri = map_chr(songs, function(x) {x$track$uri}),
-    track_name = map_chr(songs, function(x) {x$track$name})
+    spotify_id = songs$track.id,
+    uri = songs$track.uri,
+    track_name = songs$track.name
   ) %>% 
   filter(!duplicated(spotify_id))
 
 df_def <- 
   df %>% 
-  mutate(
-    spotify_year = substr(spotify_release_date, 1, 4)
-  ) %>% 
+  mutate(spotify_year = substr(spotify_release_date, 1, 4)) %>% 
   select(-track_name) %>% 
-  full_join(originalNames) %>% 
+  full_join(originalNames, by = "spotify_id") %>% 
   select(uri, artist_name, track_name, spotify_year, discogs_year) %>% 
   mutate(spotify_year = as.numeric(spotify_year)) %>% 
   pivot_longer(spotify_year:discogs_year, names_to = "release_date_source", values_to = "release_date") %>% 
@@ -45,5 +45,4 @@ df_def <-
     release_date_source
   )
 
-
-jsonlite::write_json(df_def, "output/songs3.json")
+jsonlite::write_json(df_def, "output/tuneline-songs.json")
